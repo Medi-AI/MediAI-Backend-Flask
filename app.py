@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import pickle
 import numpy as np
 from flask import Flask, request, jsonify
@@ -7,21 +8,28 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 THRESHOLD = 0.2
+MODEL_FILEPATH = os.path.join(os.path.dirname(__file__), 'model.pkl')
 
-with open('model.pkl', 'rb') as f:
+with open(MODEL_FILEPATH, 'rb') as f:
     gbm = pickle.load(f)
     state_dict = gbm.__getstate__()
     classes_array = state_dict['classes_']
     features = state_dict['feature_names_in_']
 
+@app.route('/', methods=['GET'])
+def default():
+    return jsonify({
+        'message': 'Welcome to the MediAI API!'
+    })
+
 @app.route('/predict', methods=['POST'])
 def predict():
-    if not request.json or not 'symptoms' in request.json:
+    if not request.json or 'symptoms' not in request.json:
         return jsonify({
-            'message': 'Invalid request, symtoms are required'
+            'message': 'Invalid request, symptoms field is required'
         })
 
-    symptoms = request.json.get('symptoms', [])
+    symptoms = request.json['symptoms']
     threshold = float(request.json.get('threshold', THRESHOLD))
 
     if not symptoms:
@@ -48,7 +56,7 @@ def predict():
     return jsonify({
         'output': output.tolist(),
         'filtered_output': filtered_output.tolist(),
-        'message': f'{len(filtered_output)} Matches found'
+        'message': f'{len(filtered_output)} matches found'
     })
 
 @app.route('/metadata', methods=['GET'])
