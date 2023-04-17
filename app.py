@@ -5,6 +5,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+
 THRESHOLD = 0.2
 
 with open('model.pkl', 'rb') as f:
@@ -15,8 +16,14 @@ with open('model.pkl', 'rb') as f:
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    symptoms = request.json.get('query', [])
+    if not request.json or not 'symptoms' in request.json:
+        return jsonify({
+            'message': 'Invalid request, symtoms are required'
+        })
+
+    symptoms = request.json.get('symptoms', [])
     threshold = float(request.json.get('threshold', THRESHOLD))
+
     if not symptoms:
         return jsonify({
             'output': [],
@@ -24,7 +31,7 @@ def predict():
             'message': 'No matches found'
         })
     
-    coded_features = [np.where(features == keyword)[0][0] for keyword in symptoms]
+    coded_features = [np.where(features == keyword)[0][0] for keyword in symptoms if keyword in features]
     sample_x = np.array([i / coded_features[coded_features.index(i)] 
                          if i in coded_features else 0 
                          for i in range(len(features))]).reshape(1, -1)
@@ -51,5 +58,5 @@ def metadata():
         'features': features.tolist()
     })
 
-# if __name__ == '__main__':
-#     app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)
