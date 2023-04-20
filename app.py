@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-THRESHOLD = 0.2
+THRESHOLD = 0.05
 MODEL_FILEPATH = os.path.join(os.path.dirname(__file__), 'model.pkl')
 
 with open(MODEL_FILEPATH, 'rb') as f:
@@ -52,6 +52,9 @@ def predict():
 
     output = output[np.argsort(output[:, 1])[::-1]]
     filtered_output = filtered_output[np.argsort(filtered_output[:, 1])[::-1]]
+
+    if len(filtered_output) == 0:
+        filtered_output = output[:1]
     
     return jsonify({
         'output': output.tolist(),
