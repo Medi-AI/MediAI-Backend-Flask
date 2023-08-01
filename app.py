@@ -4,8 +4,10 @@ import os
 import pickle
 import numpy as np
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 THRESHOLD = 0.05
 MODEL_FILEPATH = os.path.join(os.path.dirname(__file__), "model.pkl")
@@ -71,7 +73,3 @@ def predict():
 @app.route("/metadata", methods=["GET"])
 def metadata():
     return jsonify({"classes": classes_array.tolist(), "features": features.tolist()})
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
