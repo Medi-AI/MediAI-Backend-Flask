@@ -14,7 +14,9 @@ with open(MODEL_FILEPATH, "rb") as f:
     gbm = pickle.load(f)
     state_dict = gbm.__getstate__()
     classes_array = state_dict["classes_"]
-    features = state_dict["feature_names_in_"]
+    features_dict = {
+        feature: i for i, feature in enumerate(state_dict["feature_names_in_"])
+    }
 
 
 @app.route("/", methods=["GET"])
@@ -33,24 +35,20 @@ def predict():
         return jsonify({"output": []})
 
     coded_features = [
-        np.where(features == keyword)[0][0]
-        for keyword in symptoms
-        if keyword in features
+        features_dict[keyword] for keyword in symptoms if keyword in features_dict
     ]
 
-    sample_x = np.zeros(len(features))
+    sample_x = np.zeros(len(features_dict), dtype=np.float32)
     sample_x[coded_features] = 1
 
     probs = gbm.predict_proba(sample_x.reshape(1, -1))[0]
 
-    output = np.column_stack((classes_array, probs.astype(float)))
-    output = output[np.argsort(output[:, 1])[::-1]]
+    output = list(zip(classes_array, probs.astype(float)))
+    output.sort(key=lambda x: x[1], reverse=True)
 
-    filtered_output = output[:3]
-
-    return jsonify({"output": filtered_output.tolist()})
+    return jsonify({"output": output[:3]})
 
 
 @app.route("/metadata", methods=["GET"])
 def metadata():
-    return jsonify({"classes": classes_array.tolist(), "features": features.tolist()})
+    return jsonify({"classes": classes_array.tolist(), "features": list(features_dict)})
