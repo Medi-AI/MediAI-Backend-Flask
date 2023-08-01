@@ -51,11 +51,7 @@ def predict():
 
     filtered_output = output[:3]
 
-    return jsonify(
-        {
-            "output": filtered_output.tolist(),
-        }
-    )
+    return jsonify({"output": filtered_output.tolist()})
 
 
 @app.route("/metadata", methods=["GET"])
