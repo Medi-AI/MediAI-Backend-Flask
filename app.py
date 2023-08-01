@@ -1,15 +1,14 @@
 #!/usr/bin/python
 
-import os
-import pickle
-import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import pickle
+import numpy as np
 
 app = Flask(__name__)
 CORS(app)
 
-MODEL_FILEPATH = os.path.join(os.path.dirname(__file__), "model.pkl")
+MODEL_FILEPATH = "model.pkl"
 
 with open(MODEL_FILEPATH, "rb") as f:
     gbm = pickle.load(f)
@@ -31,9 +30,7 @@ def predict():
     symptoms = request.json["symptoms"]
 
     if not symptoms:
-        return jsonify(
-            {"output": [], "filtered_output": [], "message": "No matches found"}
-        )
+        return jsonify({"output": []})
 
     coded_features = [
         np.where(features == keyword)[0][0]
