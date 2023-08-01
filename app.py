@@ -9,7 +9,6 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-THRESHOLD = 0.05
 MODEL_FILEPATH = os.path.join(os.path.dirname(__file__), "model.pkl")
 
 with open(MODEL_FILEPATH, "rb") as f:
@@ -30,7 +29,6 @@ def predict():
         return jsonify({"message": "Invalid request, symptoms field is required"})
 
     symptoms = request.json["symptoms"]
-    threshold = float(request.json.get("threshold", THRESHOLD))
 
     if not symptoms:
         return jsonify(
@@ -42,30 +40,20 @@ def predict():
         for keyword in symptoms
         if keyword in features
     ]
-    sample_x = np.array(
-        [
-            i / coded_features[coded_features.index(i)] if i in coded_features else 0
-            for i in range(len(features))
-        ]
-    ).reshape(1, -1)
+
+    sample_x = np.zeros(len(features))
+    sample_x[coded_features] = 1
 
     probs = gbm.predict_proba(sample_x.reshape(1, -1))[0]
+
     output = np.column_stack((classes_array, probs.astype(float)))
-
-    filtered_output = output[probs > threshold]
-    filtered_output[:, 1] = filtered_output[:, 1].astype(float)
-
     output = output[np.argsort(output[:, 1])[::-1]]
-    filtered_output = filtered_output[np.argsort(filtered_output[:, 1])[::-1]]
 
-    if len(filtered_output) == 0:
-        filtered_output = output[:1]
+    filtered_output = output[:3]
 
     return jsonify(
         {
-            "output": output.tolist(),
-            "filtered_output": filtered_output.tolist(),
-            "message": f"{len(filtered_output)} matches found",
+            "output": filtered_output.tolist(),
         }
     )
 
@@ -73,3 +61,7 @@ def predict():
 @app.route("/metadata", methods=["GET"])
 def metadata():
     return jsonify({"classes": classes_array.tolist(), "features": features.tolist()})
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
